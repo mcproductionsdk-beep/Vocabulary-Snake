@@ -23,12 +23,18 @@ for(const viewport of [{width:1280,height:900},{width:390,height:844},{width:360
     document.querySelector('.app').classList.toggle('expanded',state==='expanded');
     window.dispatchEvent(new Event('resize'));
    },state);
-   snapshots.push(await page.evaluate(()=>[...document.querySelectorAll('main,main *')].filter(el=>!el.hidden).map(el=>{
+   snapshots.push(await page.evaluate(()=>[...document.querySelectorAll('main,main *')].filter(el=>!el.closest('[hidden]')).map(el=>{
     const style=getComputedStyle(el),rect=el.getBoundingClientRect();
     return {tag:el.tagName,id:el.id,classes:el.className,box:[rect.x,rect.y,rect.width,rect.height],css:Object.fromEntries([...style].map(k=>[k,style.getPropertyValue(k)]))};
    })));
   }
-  assert.deepEqual(snapshots[1],snapshots[0],`Layout/style mismatch: ${JSON.stringify(viewport)} ${state}`);
+  assert.equal(snapshots[1].length,snapshots[0].length);
+  for(let i=0;i<snapshots[0].length;i++){
+   const expected=snapshots[0][i],actual=snapshots[1][i];
+   assert.deepEqual(actual.box,expected.box,`Geometry ${viewport.width} ${state} ${actual.tag}#${actual.id}`);
+   const diffs=Object.keys(expected.css).filter(k=>actual.css[k]!==expected.css[k]).map(k=>[k,expected.css[k],actual.css[k]]);
+   assert.deepEqual(diffs,[],`Styles ${viewport.width} ${state} ${actual.tag}#${actual.id}`);
+  }
  }
  for(const page of pages)await page.close();
  console.log(`PASS baseline layout parity ${viewport.width}x${viewport.height}`);
