@@ -13,7 +13,7 @@ function runtime(source,mobile=false){
  const document={getElementById:node,createElement:()=>node('bold'),querySelector:()=>node('app'),addEventListener(){},removeEventListener(){}};
  const sandbox={document,Math:math,location:{origin:'http://test.invalid'},parent:{postMessage:m=>messages.push(m)},setTimeout:()=>0,clearTimeout(){},requestAnimationFrame:fn=>{frames.set(++serial,fn);return serial},cancelAnimationFrame:id=>frames.delete(id)};
  sandbox.window=sandbox;sandbox.matchMedia=()=>({matches:mobile});sandbox.addEventListener=()=>{};sandbox.removeEventListener=()=>{};sandbox.devicePixelRatio=1;
- const expose='window.__test={grid:()=>({cols:COLS,rows:ROWS,W,H}),drawAt:(x,y)=>{snake=[{x,y}];ctx.__rects.length=0;drawSnake();return {rects:ctx.__rects,W,H}},state:()=>({snake,dir,nextDir,score,lives,round,done,step,misses,foods,current,queue,running,paused}),move,turn,pause,resize,setFood:(pair)=>{foods=[{x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS,pair:pair===true?current:vocab.find(v=>v.id!==current.id)}];invincible=0},clearFoods:()=>{foods=[]},finishRound:()=>{queue=[]},collide:()=>{snake=[{x:15,y:10},{x:16,y:10},{x:16,y:11},{x:15,y:11}];invincible=0}};';
+ const expose='window.__test={boost:()=>tapBoost,tap:typeof tapTurn==="function"?tapTurn:null,fade:typeof fadeBoost==="function"?fadeBoost:null,grid:()=>({cols:COLS,rows:ROWS,W,H}),drawAt:(x,y)=>{snake=[{x,y}];ctx.__rects.length=0;drawSnake();return {rects:ctx.__rects,W,H}},state:()=>({snake,dir,nextDir,score,lives,round,done,step,misses,foods,current,queue,running,paused}),move,turn,pause,resize,setFood:(pair)=>{foods=[{x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS,pair:pair===true?current:vocab.find(v=>v.id!==current.id)}];invincible=0},clearFoods:()=>{foods=[]},finishRound:()=>{queue=[]},collide:()=>{snake=[{x:15,y:10},{x:16,y:10},{x:16,y:11},{x:15,y:11}];invincible=0}};';
  vm.runInNewContext(source.replace('})();',expose+'})();'),sandbox);
  const pairs=Array.from({length:6},(_,i)=>['prompt'+i,'target'+i]);
  assert.equal(sandbox.BTSnake.start({pairs,language:'es-ES'}),true);
@@ -88,4 +88,16 @@ test('adaptive grid has square cells, minimum area and frozen coordinates on res
  const before=r.state();board.getBoundingClientRect=()=>({width:360,height:600});r.api.resize();
  g=r.api.grid();assert.equal(g.cols,60);assert.equal(g.rows,20);assert.equal(g.W/g.cols,g.H/g.rows);assert.deepEqual(r.state(),before);
  r.engine.restart();g=r.api.grid();assert.equal(g.cols,30);assert.equal(g.rows,50);assert.equal(g.W/g.cols,g.H/g.rows);
+});
+
+test('separate valid taps build bounded speed, fade and clear on pause/restart',()=>{
+ const r=runtime(candidate);assert.equal(r.api.boost(),0);
+ r.api.tap(1,0,0);assert.equal(r.api.boost(),0);
+ for(let n=1;n<=12;n++)r.api.tap(1,0,n*100);
+ assert.equal(r.api.boost(),.5);const step=r.state().step;
+ r.api.fade(.2);assert.equal(r.api.boost(),.5);r.api.fade(1);assert.equal(r.api.boost(),0);assert.equal(r.state().step,step);
+ r.api.tap(1,0,2000);r.api.tap(1,0,2100);assert.ok(r.api.boost()>0);
+ r.engine.pause();assert.equal(r.api.boost(),0);assert.equal(r.api.tap(1,0,2200),false);
+ r.engine.resume();r.api.tap(1,0,2300);r.api.tap(1,0,2400);r.engine.restart();assert.equal(r.api.boost(),0);
+ r.api.tap(-1,0,2500);r.api.tap(-1,0,2600);assert.equal(r.api.boost(),0);
 });
