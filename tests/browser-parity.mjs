@@ -22,6 +22,7 @@ try {
    assert.ok(geometry.canvas.width<=geometry.wrap.width-7&&geometry.canvas.height<=geometry.wrap.height-7);
    assert.equal(await page.locator('.logo,.buttons,#mainMenu,#overMenu,#again').count(),0);
   }
+  const before=await page.evaluate(()=>BTSnake.state());await page.setViewportSize({width:viewport.height,height:viewport.width});const after=await page.evaluate(()=>BTSnake.state());assert.deepEqual(after,before);
   assert.deepEqual(errors,[]);await page.close();console.log(`PASS engine viewport and ownership ${viewport.width}x${viewport.height}`);
  }
 }finally{await browser.close();}
