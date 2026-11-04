@@ -1,0 +1,65 @@
+name: Migration safety checks
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches:
+      - develop
+      - 'feature/**'
+      - 'release/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migration-safety-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-and-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require game entry and meaningful release tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in index.html tests/release.test.mjs tests/release-e2e.mjs; do
+            if [ ! -s "$f" ]; then
+              echo "::error::Required migration file missing: $f. Repository setup is not game acceptance."
+              exit 1
+            fi
+          done
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' f; do node --check "$f"; done < <(git ls-files -z '*.js' '*.mjs' '*.cjs')
+      - name: Run release contract tests
+        run: node --test tests/release.test.mjs
+      - name: Install pinned browser client
+        run: npm install --no-save --no-package-lock playwright-core@1.56.1
+      - name: Run isolated browser regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v google-chrome-stable || true)"
+          test -n "$CHROME_BIN"
+          export SNAKE_TEST_BASE=http://127.0.0.1:8765
+          export GAME_TEST_BASE=http://127.0.0.1:8765
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/game-test-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8765/index.html > /dev/null; then READY=1; break; fi
+            sleep 1
+          done
+          test "$READY" = 1
+          node tests/release-e2e.mjs
