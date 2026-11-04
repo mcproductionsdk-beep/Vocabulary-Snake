@@ -1,5 +1,6 @@
 (function(){"use strict";function E(x){return document.getElementById(x)}var canvas=E("canvas"),ctx=canvas.getContext("2d"),wrap=E("wrap"),game=E("game");
 var COLS=30,ROWS=20,W=900,H=600,DPR=1,vocab=[],queue=[],current=null,foods=[],snake=[],dir={x:1,y:0},nextDir={x:1,y:0},misses={},score=0,lives=3,round=1,done=0,running=false,paused=false,soundOn=true,audioCtx=null,lang="de-DE",raf=0,last=0,acc=0,step=.18,invincible=0;
+var tapBoost=0,lastTap=-Infinity,boostQuiet=0;
 var disposed=false, eventListener=null, effectTimers=new Set(), oscillators=new Set(), listeners=[];
 function listen(target,type,callback,options){target.addEventListener(type,callback,options);listeners.push(function(){target.removeEventListener(type,callback,options)})}
 function emit(type,payload){if(eventListener)eventListener(Object.assign({type:type},payload));else parent.postMessage(Object.assign({type:type},payload),location.origin)}
@@ -49,8 +50,8 @@ function ensureCorrectFood(){
  /* Free room for the required correct answer before any distractor. */
  while(!addFood(current)&&foods.length)foods.pop();
 }
-function start(pairs,locale,defer){if(disposed||!validPayload({pairs:pairs,language:locale}))return false;clearEffects();lang=locale;vocab=pairs.map(function(p,i){return{id:i,target:p[1],prompt:p[0]}});score=0;lives=3;round=1;done=0;misses={};step=.18;game.classList.add("active");configureGrid();snake=initialSnake();dir={x:1,y:0};nextDir={x:1,y:0};foods=[];invincible=0;running=true;paused=!!defer;last=0;acc=0;build();current=queue.shift();hud();game.classList.add("active");E("gameOver").classList.remove("show");E("pauseOverlay").classList.toggle("show",paused);swipeStart=null;resize();fillFoods();cancelAnimationFrame(raf);raf=0;if(!paused)raf=requestAnimationFrame(loop);return true;}
-function resetPosition(){snake=initialSnake();dir={x:1,y:0};nextDir={x:1,y:0};invincible=1}
+function start(pairs,locale,defer){if(disposed||!validPayload({pairs:pairs,language:locale}))return false;clearEffects();lang=locale;vocab=pairs.map(function(p,i){return{id:i,target:p[1],prompt:p[0]}});score=0;lives=3;round=1;done=0;misses={};step=.18;clearBoost();game.classList.add("active");configureGrid();snake=initialSnake();dir={x:1,y:0};nextDir={x:1,y:0};foods=[];invincible=0;running=true;paused=!!defer;last=0;acc=0;build();current=queue.shift();hud();game.classList.add("active");E("gameOver").classList.remove("show");E("pauseOverlay").classList.toggle("show",paused);swipeStart=null;resize();fillFoods();cancelAnimationFrame(raf);raf=0;if(!paused)raf=requestAnimationFrame(loop);return true;}
+function resetPosition(){clearBoost();snake=initialSnake();dir={x:1,y:0};nextDir={x:1,y:0};invincible=1}
 function hurt(t){if(invincible>0)return;lives--;invincible=1;bad();flash(t,0);hud();if(lives<=0){running=false;E("gameOver").classList.add("show");if(eventListener)emit("BT_SNAKE_STATE",state())}else resetPosition()}
 function move(){
  dir=nextDir;var h=snake[0],nh={x:(h.x+dir.x+COLS)%COLS,y:(h.y+dir.y+ROWS)%ROWS};
@@ -92,22 +93,25 @@ function draw(){ctx.clearRect(0,0,W,H);rect(0,0,W,H,"#163f45");var cw=W/COLS,ch=
 function availableBoard(){var r=wrap.getBoundingClientRect();return {width:Math.max(1,wrap.clientWidth??r.width),height:Math.max(1,wrap.clientHeight??r.height)}}
 function configureGrid(){var r=availableBoard(),cell=Math.min(r.width/30,r.height/20);COLS=Math.max(30,Math.floor(r.width/cell));ROWS=Math.max(20,Math.floor(r.height/cell));}
 function resize(){if(disposed)return;var r=availableBoard(),cell=Math.min(r.width/COLS,r.height/ROWS);W=COLS*cell;H=ROWS*cell;DPR=Math.max(1,window.devicePixelRatio||1);canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);canvas.style.width=W+"px";canvas.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);draw()}
-function loop(n){raf=0;if(disposed||!running||paused)return;if(!last)last=n;var dt=Math.min(.05,(n-last)/1000);last=n;if(invincible>0)invincible-=dt;acc+=dt;while(acc>=step&&running){acc-=step;move()}draw();if(running)raf=requestAnimationFrame(loop)}
-function turn(x,y){if(!running||paused)return;if(x===-dir.x&&y===-dir.y)return;nextDir={x:x,y:y}}
-function setPaused(value){if(disposed||!running)return false;if(paused===value)return true;paused=value;swipeStart=null;cancelAnimationFrame(raf);raf=0;last=0;E("pauseOverlay").classList.toggle("show",paused);if(paused){clearEffects();emit("BT_SNAKE_CANCEL_SPEECH")}else raf=requestAnimationFrame(loop);emit("BT_SNAKE_STATE",state());return true}
+function clearBoost(){tapBoost=0;lastTap=-Infinity;boostQuiet=0}
+function fadeBoost(dt){boostQuiet+=dt;if(boostQuiet>.3)tapBoost=Math.max(0,tapBoost-dt*.8)}
+function tapTurn(x,y,now){if(!turn(x,y))return false;var gap=now-lastTap;if(gap>=40&&gap<=450)tapBoost=Math.min(.5,tapBoost+.125);lastTap=now;boostQuiet=0;return true}
+function loop(n){raf=0;if(disposed||!running||paused)return;if(!last)last=n;var dt=Math.min(.05,(n-last)/1000);last=n;if(invincible>0)invincible-=dt;fadeBoost(dt);acc+=dt*(1+tapBoost);while(acc>=step&&running){acc-=step;move()}draw();if(running)raf=requestAnimationFrame(loop)}
+function turn(x,y){if(!running||paused)return false;if(x===-dir.x&&y===-dir.y)return false;nextDir={x:x,y:y};return true}
+function setPaused(value){if(disposed||!running)return false;if(paused===value)return true;paused=value;clearBoost();swipeStart=null;cancelAnimationFrame(raf);raf=0;last=0;E("pauseOverlay").classList.toggle("show",paused);if(paused){clearEffects();emit("BT_SNAKE_CANCEL_SPEECH")}else raf=requestAnimationFrame(loop);emit("BT_SNAKE_STATE",state());return true}
 function pause(){return setPaused(!paused)}
 function setSound(value){if(disposed||typeof value!=="boolean")return false;soundOn=value;if(!soundOn){clearEffects();emit("BT_SNAKE_CANCEL_SPEECH")}return true}
-function dispose(){if(disposed)return;running=false;paused=false;disposed=true;if(window.BTSnakeLegacyDispose)window.BTSnakeLegacyDispose();cancelAnimationFrame(raf);raf=0;swipeStart=null;clearEffects();listeners.forEach(function(remove){remove()});listeners=[];if(audioCtx){try{var closed=audioCtx.close();if(closed&&closed.catch)closed.catch(function(){})}catch(e){}audioCtx=null}game.classList.remove("active");emit("BT_SNAKE_CANCEL_SPEECH");eventListener=null}
+function dispose(){if(disposed)return;running=false;paused=false;clearBoost();disposed=true;if(window.BTSnakeLegacyDispose)window.BTSnakeLegacyDispose();cancelAnimationFrame(raf);raf=0;swipeStart=null;clearEffects();listeners.forEach(function(remove){remove()});listeners=[];if(audioCtx){try{var closed=audioCtx.close();if(closed&&closed.catch)closed.catch(function(){})}catch(e){}audioCtx=null}game.classList.remove("active");emit("BT_SNAKE_CANCEL_SPEECH");eventListener=null}
 
 var fsTarget=document.querySelector(".app");
-listen(window,"keydown",function(e){if(!game.classList.contains("active"))return;var k=e.key.toLowerCase();if(k==="arrowleft"||k==="a"){turn(-1,0);e.preventDefault()}if(k==="arrowright"||k==="d"){turn(1,0);e.preventDefault()}if(k==="arrowup"||k==="w"){turn(0,-1);e.preventDefault()}if(k==="arrowdown"||k==="s"){turn(0,1);e.preventDefault()}if(k==="p"&&!e.repeat)pause()});
+listen(window,"keydown",function(e){if(!game.classList.contains("active"))return;var k=e.key.toLowerCase();if(k==="arrowleft"||k==="a"){if(!e.repeat)tapTurn(-1,0,Date.now());e.preventDefault()}if(k==="arrowright"||k==="d"){if(!e.repeat)tapTurn(1,0,Date.now());e.preventDefault()}if(k==="arrowup"||k==="w"){if(!e.repeat)tapTurn(0,-1,Date.now());e.preventDefault()}if(k==="arrowdown"||k==="s"){if(!e.repeat)tapTurn(0,1,Date.now());e.preventDefault()}if(k==="p"&&!e.repeat)pause()});
 /* Touch buttons call the existing turn() function; no desktop key handling changes. */
 [["touchUp",0,-1],["touchLeft",-1,0],["touchDown",0,1],["touchRight",1,0]].forEach(function(spec){
   var button=E(spec[0]);
   listen(button,"pointerdown",function(ev){
     if(!running||paused)return;
     ev.preventDefault();
-    turn(spec[1],spec[2]);
+    tapTurn(spec[1],spec[2],Date.now());
     if(button.setPointerCapture)try{button.setPointerCapture(ev.pointerId)}catch(err){}
   },{passive:false});
   listen(button,"contextmenu",function(ev){ev.preventDefault()});
