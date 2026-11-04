@@ -7,7 +7,11 @@ const base=process.env.SNAKE_TEST_BASE||'http://127.0.0.1:8765';
 try {
  for(const viewport of [{width:1280,height:900},{width:390,height:844},{width:360,height:640},{width:844,height:390},{width:768,height:1024}]){
   const page=await browser.newPage({viewport}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.route('**/*',route=>new URL(route.request().url()).origin===new URL(base).origin?route.continue():route.abort());
+  await page.route('**/*',async route=>{
+   const url=new URL(route.request().url());if(url.origin!==new URL(base).origin)return route.abort();
+   if(url.pathname==='/engine/snake.js'){const response=await route.fetch();const body=(await response.text()).replace('})();','window.__grid=()=>({cols:COLS,rows:ROWS,W,H});})();');return route.fulfill({response,body});}
+   return route.continue();
+  });
   await page.addInitScript(()=>{window.requestAnimationFrame=()=>1;});
   await page.goto(base+'/snake-game.html');
   await page.evaluate(()=>BTSnake.start({language:'es-ES',pairs:Array.from({length:6},(_,i)=>['prompt'+i,'target'+i])}));
@@ -22,7 +26,10 @@ try {
    assert.ok(geometry.canvas.width<=geometry.wrap.width-7&&geometry.canvas.height<=geometry.wrap.height-7);
    assert.equal(await page.locator('.logo,.buttons,#mainMenu,#overMenu,#again').count(),0);
   }
+  const grid=await page.evaluate(()=>__grid());assert.ok(grid.cols>=30&&grid.rows>=20);assert.ok(Math.abs(grid.W/grid.cols-grid.H/grid.rows)<1e-8);
   const before=await page.evaluate(()=>BTSnake.state());await page.setViewportSize({width:viewport.height,height:viewport.width});const after=await page.evaluate(()=>BTSnake.state());assert.deepEqual(after,before);
+  const resized=await page.evaluate(()=>__grid());assert.equal(resized.cols,grid.cols);assert.equal(resized.rows,grid.rows);assert.ok(Math.abs(resized.W/resized.cols-resized.H/resized.rows)<1e-8);
+  await page.evaluate(()=>BTSnake.restart());const restarted=await page.evaluate(()=>__grid());assert.ok(restarted.cols>=30&&restarted.rows>=20);assert.ok(Math.abs(restarted.W/restarted.cols-restarted.H/restarted.rows)<1e-8);
   assert.deepEqual(errors,[]);await page.close();console.log(`PASS engine viewport and ownership ${viewport.width}x${viewport.height}`);
  }
 }finally{await browser.close();}
