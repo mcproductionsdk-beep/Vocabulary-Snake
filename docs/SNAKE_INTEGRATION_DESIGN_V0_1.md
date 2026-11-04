@@ -51,13 +51,13 @@ Envelope after handshake:
   "protocol": "bt-vocabulary-engine/1",
   "engineId": "vocabulary-snake",
   "sessionId": "shell-generated-opaque-session",
-  "requestId": "session-unique-command-id",
+  "requestId": "1",
   "type": "INIT",
   "payload": {}
 }
 ```
 
-sessionId correlates lifecycle messages; it is not authentication. requestId correlates commands/acknowledgements. Engine READY is accepted only from the configured iframe window and exact engine origin, with matching engine ID, protocol and expected build ID. Shell then binds a new session. Engine checks exact approved shell origin and parent window before accepting INIT. Bootstrap origin policy is supplied by trusted build/deployment configuration, never arbitrary query/set content. Missing policy does not announce or accept a usable session.
+sessionId correlates lifecycle messages; it is not authentication. requestId is a monotonically increasing positive decimal string (up to 15 digits) correlating commands/acknowledgements. Responses for the latest 128 IDs are cached; older IDs are rejected as stale without replaying an action. Engine READY is accepted only from the configured iframe window and exact engine origin, with matching engine ID, protocol and expected build ID. Shell then binds a new session. Engine checks exact approved shell origin and parent window before accepting INIT. Bootstrap origin policy is supplied by trusted build/deployment configuration, never arbitrary query/set content. Missing policy does not announce or accept a usable session.
 
 All messages validate shape, direction, type and current session. No wildcard origins. Reject incompatible versions, stale sessions, spoofed windows, unknown commands and oversized/malformed payloads with bounded errors. Never echo content/credentials into error logs. Disposal stops accepting further session commands. Repeated command IDs return the prior bounded acknowledgement without rerunning effects; duplicate INIT cannot create a second loop. Request tracking is bounded for the active session and cleared at disposal.
 
@@ -146,3 +146,9 @@ Release build explicitly copies approved assets to dist; tests, references, fixt
 Rollback ledger pins shell build, engine build, registry/config revisions, service compatibility and original routing. Until an integrated combination is accepted, fallback is the unchanged public homepage/Word-Snake release, not a speculative central shell. Source Registry remains unchanged because no new production mapping is verified.
 
 Open before freeze: trusted shell deployment origin; actual staging service/store evidence; supported-device list and performance measurements; API-derived content limits; iframe gesture/focus proof; catalog publication/category-ID mapping. Accounts, private library and billing remain deferred. These do not justify rewriting current production or silently claiming full P1 approval.
+
+## Implementation increment — 2026-11-04
+
+Central validators and public-sharing wrapper are implemented on Educational-Games feature/central-runtime-config-20261104, without production entry imports or deployment config. Snake has a candidate explicit session adapter in engine/session.mjs. The existing compatibility entry remains for baseline comparisons; session attachment requires a trusted deployment bootstrap. Test bootstraps are injected by the browser test and never shipped as configuration.
+
+Lifecycle corrections are separately identified: restart clears pause UI; pause/resume owns one pending frame; invalid pairs are rejected before state mutation; blur/hidden pauses; disposal removes owned listeners/timers/audio. Mechanics parity remains covered. No centralized shell UI, real staging sharing/store, CSP packaging or physical-device acceptance is claimed.
