@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/engine.test.mjs
+      - run: node --test tests/engine.test.mjs tests/session.test.mjs
       - run: npm install --no-save --no-package-lock playwright-core@1.56.1
       - name: Compare baseline and candidate browser layouts
         shell: bash
@@ -31,3 +31,4 @@ jobs:
             sleep 1
           done
           node tests/browser-parity.mjs
+          node tests/browser-lifecycle.mjs
