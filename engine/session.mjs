@@ -54,9 +54,11 @@ export function attachSnakeSession({engine, policy, hostWindow = window, parentW
           if (!set || set.family !== 'vocabulary' || set.schemaVersion !== 1 ||
               typeof set.title !== 'string' || !set.title.trim() ||
               !LOCALES.includes(set.promptLanguage) || !LOCALES.includes(set.language) ||
-              set.promptLanguage === set.language || typeof payload.soundOn !== 'boolean') {
+              set.promptLanguage === set.language || typeof payload.soundOn !== 'boolean' ||
+              (payload.shellControls !== undefined && typeof payload.shellControls !== 'boolean')) {
             code = 'INVALID_INIT';break;
           }
+          if (payload.shellControls === true && !engine.setShellManaged?.(true)) {code = 'SHELL_CONTROLS_UNAVAILABLE';break;}
           if (!engine.initialize(set)) {code = 'INVALID_INIT';break;}
           engine.setSound(payload.soundOn);
           initialized = true;responseType = 'INITIALIZED';break;
