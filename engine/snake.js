@@ -178,6 +178,7 @@ window.BTSnake={
  pause:function(){return setPaused(true)},resume:function(){return setPaused(false)},
  restart:function(){if(disposed||!activePairs.length)return false;emit("BT_SNAKE_CANCEL_SPEECH");return start(activePairs,lang)},
  setSound:setSound,resize:resize,state:state,dispose:dispose,
+ setShellManaged:function(value){if(disposed||typeof value!=="boolean")return false;fsTarget.classList.toggle("shell-managed",value);resize();return true},
  subscribe:function(listener){if(disposed||eventListener||typeof listener!=="function")return false;eventListener=listener;return true}
 };
 })();
