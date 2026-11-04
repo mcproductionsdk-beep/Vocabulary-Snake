@@ -9,7 +9,7 @@ try {
   const page=await browser.newPage({viewport}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/*',async route=>{
    const url=new URL(route.request().url());if(url.origin!==new URL(base).origin)return route.abort();
-   if(url.pathname==='/engine/snake.js'){const response=await route.fetch();const body=(await response.text()).replace('})();','window.__grid=()=>({cols:COLS,rows:ROWS,W,H});})();');return route.fulfill({response,body});}
+   if(url.pathname==='/engine/snake.js'){const response=await route.fetch();const body=(await response.text()).replace('})();','window.__boost=()=>tapBoost;window.__grid=()=>({cols:COLS,rows:ROWS,W,H});})();');return route.fulfill({response,body});}
    return route.continue();
   });
   await page.addInitScript(()=>{window.requestAnimationFrame=()=>1;});
@@ -30,6 +30,21 @@ try {
   const before=await page.evaluate(()=>BTSnake.state());await page.setViewportSize({width:viewport.height,height:viewport.width});const after=await page.evaluate(()=>BTSnake.state());assert.deepEqual(after,before);
   const resized=await page.evaluate(()=>__grid());assert.equal(resized.cols,grid.cols);assert.equal(resized.rows,grid.rows);assert.ok(Math.abs(resized.W/resized.cols-resized.H/resized.rows)<1e-8);
   await page.evaluate(()=>BTSnake.restart());const restarted=await page.evaluate(()=>__grid());assert.ok(restarted.cols>=30&&restarted.rows>=20);assert.ok(Math.abs(restarted.W/restarted.cols-restarted.H/restarted.rows)<1e-8);
+  await page.evaluate(()=>{
+   const original=Date.now;let now=1000;Date.now=()=>now;
+   try{
+    for(let n=0;n<8;n++){now+=100;dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',repeat:true,bubbles:true}));}
+    if(__boost()!==0)throw Error('Held key added speed');
+    for(let n=0;n<8;n++){now+=100;dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',repeat:false,bubbles:true}));}
+    if(__boost()!==.5)throw Error('Fresh key taps did not reach cap');
+    BTSnake.pause();if(__boost()!==0)throw Error('Pause kept boost');BTSnake.restart();
+    if(getComputedStyle(document.querySelector('.mobile-controls')).display!=='none'){
+     for(let n=0;n<8;n++){now+=100;document.getElementById('touchRight').dispatchEvent(new PointerEvent('pointerdown',{pointerId:1,bubbles:true,cancelable:true}));}
+     if(__boost()!==.5)throw Error('Touch taps did not match keyboard boost');
+    }
+    BTSnake.restart();if(__boost()!==0)throw Error('Restart kept boost');
+   }finally{Date.now=original;}
+  });
   assert.deepEqual(errors,[]);await page.close();console.log(`PASS engine viewport and ownership ${viewport.width}x${viewport.height}`);
  }
 }finally{await browser.close();}
