@@ -37,7 +37,7 @@ try {
  await command('PAUSE');assert.equal(await frame.locator('#pauseOverlay').evaluate(el=>el.classList.contains('show')),true);
  assert.equal((await command('RESTART')).payload.state.status,'running');
  assert.equal(await frame.locator('#pauseOverlay').evaluate(el=>el.classList.contains('show')),false);
- assert.equal(await frame.locator('#pause').textContent(),'PAUSE');
+ assert.equal(await frame.locator('#pause').count(),0);
  await frame.evaluate(()=>dispatchEvent(new Event('blur')));
  assert.equal(await frame.evaluate(()=>BTSnake.state().status),'paused');
  const before=await frame.evaluate(()=>BTSnake.state());await page.setViewportSize({width:844,height:390});
