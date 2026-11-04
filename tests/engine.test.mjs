@@ -64,3 +64,9 @@ test('invalid engine input leaves the current session unchanged',()=>{
   assert.equal(r.engine.start(payload),false);assert.deepEqual(r.state(),before);
  }
 });
+test('central shell control ownership is explicit and leaves steering available',()=>{
+ const r=runtime(candidate);assert.equal(r.nodes.get('app').classList.contains('shell-managed'),false);
+ assert.equal(r.engine.setShellManaged(true),true);assert.equal(r.nodes.get('app').classList.contains('shell-managed'),true);
+ assert.equal(typeof r.nodes.get('touchUp').listeners.pointerdown,'function');
+ assert.equal(r.engine.setShellManaged('yes'),false);r.engine.setShellManaged(false);assert.equal(r.nodes.get('app').classList.contains('shell-managed'),false);
+});
