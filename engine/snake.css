@@ -1,78 +1,22 @@
+/* Snake owns only HUD, board, feedback and steering. Shared actions live in the shell. */
 *{box-sizing:border-box}
-body{margin:0;background:#16264e;color:#fff;font-family:"Courier New",monospace;image-rendering:pixelated}
-.app{width:min(1120px,calc(100vw - 12px));margin:6px auto;padding:10px;background:#203a67;border:5px solid #0c1938;box-shadow:0 0 0 4px #f2d64b}
-.logo{text-align:center;font:900 clamp(27px,4vw,44px) "Courier New";letter-spacing:4px;color:#78df62;text-shadow:4px 4px #0c1938;margin:4px}
+html,body{height:100%;overflow:hidden}
+body{margin:0;background:#203a67;color:#fff;font-family:"Courier New",monospace;image-rendering:pixelated}
+.app{width:100%;height:100dvh;margin:0;padding:4px;display:flex;flex-direction:column;min-height:0}
 .screen{display:none}
-.screen.active{display:block}
-button{font:900 14px "Courier New";padding:10px 14px;margin:4px;border:4px solid #101a43;background:#5cc7d8;color:#101a43;cursor:pointer;box-shadow:inset -3px -3px #2c7794,inset 3px 3px #c4ffff}
-.primary{background:#78df62}
-.yellow{background:#f2d64b}
-.pink{background:#ef6689}
-.hud{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin:7px 0;font:900 13px "Courier New";text-shadow:2px 2px #0c1938}
-.target{text-align:center;background:#f2d64b;color:#15254a;border:4px solid #101a43;padding:7px;font-size:clamp(14px,2vw,21px);text-shadow:none}
+#game.active{flex:1;min-height:0;display:flex;flex-direction:column}
+.hud{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin:3px 0;flex:none;font:900 13px "Courier New";text-shadow:2px 2px #0c1938}
+.target{text-align:center;background:#f2d64b;color:#15254a;border:4px solid #101a43;padding:7px;font-size:clamp(14px,2vw,21px);text-shadow:none;overflow-wrap:anywhere}
 .progress{text-align:right}
-.wrap{height:min(68vh,650px);max-height:calc(100vh - 170px);min-height:400px;position:relative;border:4px solid #0c1938;background:#112c3d;overflow:hidden}
-canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
-.buttons{text-align:center}
-.tip{text-align:center;font-size:11px;font-weight:bold;color:#d9edff}
+.wrap{flex:1;height:0;min-height:0;position:relative;border:4px solid #0c1938;background:#112c3d;overflow:hidden}
+canvas{width:100%;height:100%;display:block;image-rendering:pixelated;touch-action:none}
+.tip{text-align:center;font-size:10px;font-weight:bold;color:#d9edff;flex:none;margin:2px}
 .overlay{display:none;position:absolute;inset:0;background:#0c1938e8;z-index:5;align-items:center;justify-content:center;text-align:center}
 .overlay.show{display:flex}
 .big{font:900 clamp(28px,5vw,48px) "Courier New";color:#ef6689;text-shadow:4px 4px #000}
 .msg{font:900 clamp(17px,2.4vw,27px) "Courier New";margin:10px}
 .toast{display:none;position:absolute;left:50%;top:10%;transform:translateX(-50%);z-index:4;font:900 24px "Courier New";text-shadow:3px 3px #0c1938}
-.app.expanded{position:fixed;inset:0;z-index:99999;width:100vw;height:100vh;margin:0;max-width:none;padding:8px;border:0;box-shadow:none}
-.app.expanded #game.active{height:calc(100vh - 62px);display:flex;flex-direction:column}
-.app.expanded .wrap{flex:1;height:auto;max-height:none;min-height:0}
-.app:fullscreen,.app:-webkit-full-screen{width:100vw;height:100vh;margin:0;max-width:none;padding:10px;border:0;box-shadow:none}
-.app:fullscreen #game.active,.app:-webkit-full-screen #game.active{height:calc(100vh - 68px);display:flex;flex-direction:column}
-.app:fullscreen .wrap,.app:-webkit-full-screen .wrap{flex:1;height:auto;max-height:none;min-height:0}
-@media(max-width:760px){.hud{grid-template-columns:1fr 1fr}
-.target{grid-column:1/-1;grid-row:1}
-.wrap{height:62vh;max-height:none}
-}.mobile-controls{display:none}
-
-@media(max-width:760px){body{overflow-x:hidden}
-.app{width:calc(100% - 8px);margin:4px auto;padding:5px;border-width:3px;box-shadow:0 0 0 2px #f2d64b}
-.logo{font-size:clamp(21px,6vw,32px);letter-spacing:1px;margin:3px}
-#game.active{display:flex;flex-direction:column}
-#game .buttons{order:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;margin:3px 0}
-#game .buttons button{margin:0;padding:7px 1px;font-size:clamp(8px,2.15vw,11px);min-width:0;overflow-wrap:anywhere;border-width:2px}
-#game .hud{order:2;grid-template-columns:1fr auto;gap:3px;margin:3px 0;font-size:11px}
-#game .target{grid-column:1/-1;grid-row:1;padding:5px;font-size:clamp(14px,3.7vw,19px);overflow-wrap:anywhere}
-#game .progress{text-align:right}
-#game .wrap{order:3;height:clamp(235px,43dvh,490px);min-height:0;max-height:none;flex:none}
-#game .mobile-controls{order:4;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,52px);gap:5px;max-width:360px;width:100%;margin:7px auto 0;touch-action:none}
-#game .mobile-controls button{margin:0;padding:4px;font-size:21px;min-height:48px;touch-action:none;user-select:none;-webkit-user-select:none;border-width:3px}
-#game .mobile-controls button:active{background:#f2d64b}
-#game .mobile-controls .up{grid-column:2;grid-row:1}
-#game .mobile-controls .left{grid-column:1;grid-row:2}
-#game .mobile-controls .down{grid-column:2;grid-row:2}
-#game .mobile-controls .right{grid-column:3;grid-row:2}
-#game .tip{order:5;font-size:10px;margin:3px}
-#game canvas{touch-action:none}
-.app.expanded #game.active,.app:fullscreen #game.active,.app:-webkit-full-screen #game.active{height:calc(100dvh - 45px)}
-.app.expanded #game .wrap,.app:fullscreen #game .wrap,.app:-webkit-full-screen #game .wrap{flex:1;min-height:0;height:auto}
-
-}
-@media(max-width:760px) and (max-height:670px){#game .wrap{height:clamp(190px,37dvh,320px)}
-#game .mobile-controls{grid-template-rows:repeat(2,43px);margin-top:3px}
-#game .mobile-controls button{min-height:40px;font-size:18px}
-
-}
-@media(max-width:760px){button{min-height:48px}
-
-}
-
-/* Approved mobile controls remain below the board; larger vocabulary prompts. */
-@media(max-width:760px){.logo{font-size:clamp(22px,6vw,32px);letter-spacing:2px;margin:3px 0 1px}
-#game .buttons{order:1;display:grid;grid-template-columns:repeat(4,minmax(0,76px));justify-content:center;gap:5px;width:100%;margin:3px 0 6px}
-#game .buttons button{margin:0;padding:5px 1px;min-width:0;min-height:45px;font-size:clamp(9px,2.2vw,11px);line-height:1.2;border-width:2px;overflow-wrap:normal}
-#game #fullscreen{display:none!important}
-#game .target{font-size:clamp(18px,4.6vw,24px);padding:8px;line-height:1.3}
-#game .hud{font-size:clamp(12px,2.9vw,15px)}
-
-}
-
-/* Active only when an approved central shell owns these common controls. */
-.app.shell-managed>.logo,.app.shell-managed #game>.buttons,
-.app.shell-managed #again,.app.shell-managed #overMenu{display:none!important}
+.mobile-controls{display:none}
+@media(max-width:760px){.hud{grid-template-columns:1fr auto;gap:3px;font-size:clamp(12px,2.9vw,15px)}.target{grid-column:1/-1;grid-row:1;padding:5px;font-size:clamp(18px,4.6vw,24px)}}
+@media(max-width:760px),(pointer:coarse){.mobile-controls{display:grid;flex:none;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,44px);gap:3px;max-width:360px;width:100%;margin:3px auto 0;touch-action:none}.mobile-controls button{font:900 21px "Courier New";margin:0;padding:4px;min-height:44px;border:3px solid #101a43;background:#5cc7d8;color:#101a43;touch-action:none;user-select:none;-webkit-user-select:none}.mobile-controls button:active{background:#f2d64b}.mobile-controls .up{grid-column:2;grid-row:1}.mobile-controls .left{grid-column:1;grid-row:2}.mobile-controls .down{grid-column:2;grid-row:2}.mobile-controls .right{grid-column:3;grid-row:2}}
+@media(max-height:480px){.mobile-controls{grid-template-columns:repeat(4,44px);grid-template-rows:44px;justify-content:center;max-width:none}.mobile-controls .up,.mobile-controls .left,.mobile-controls .down,.mobile-controls .right{grid-column:auto;grid-row:1}.target{padding:3px;font-size:16px}.tip{display:none}}
