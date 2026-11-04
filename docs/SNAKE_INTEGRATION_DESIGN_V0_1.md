@@ -1,7 +1,7 @@
 # Snake integration design V0.1
 
 Date: 2026-11-04
-Status: SOURCE INSPECTED; DESIGN CANDIDATE. Not an implemented protocol, deployed shell, completed isolation claim or production approval.
+Status: SOURCE INSPECTED; PARTIAL ISOLATED IMPLEMENTATION CANDIDATE. Protocol and central shell pilot code exist on isolated branches; no deployed shell, completed isolation claim or production approval.
 
 ## 1. Task and authority
 
@@ -151,4 +151,10 @@ Open before freeze: trusted shell deployment origin; actual staging service/stor
 
 Central validators and public-sharing wrapper are implemented on Educational-Games feature/central-runtime-config-20261104, without production entry imports or deployment config. Snake has a candidate explicit session adapter in engine/session.mjs. The existing compatibility entry remains for baseline comparisons; session attachment requires a trusted deployment bootstrap. Test bootstraps are injected by the browser test and never shipped as configuration.
 
-Lifecycle corrections are separately identified: restart clears pause UI; pause/resume owns one pending frame; invalid pairs are rejected before state mutation; blur/hidden pauses; disposal removes owned listeners/timers/audio. Mechanics parity remains covered. No centralized shell UI, real staging sharing/store, CSP packaging or physical-device acceptance is claimed.
+Lifecycle corrections are separately identified: restart clears pause UI; pause/resume owns one pending frame; invalid pairs are rejected before state mutation; blur/hidden pauses; disposal removes owned listeners/timers/audio. Mechanics parity remains covered. A centralized shell pilot now exists in Educational-Games/platform/ on feature/central-runtime-config-20261104. Real staging sharing/store, CSP packaging and physical-device acceptance remain pending.
+
+## Central-shell integration increment — 2026-11-04
+
+Educational-Games draft PR #3 now contains the central shell UI, session client and one browser pronunciation service. Snake opts into central common controls through INIT shellControls:true; baseline compatibility mode retains its original layout. The central browser fixture pins engine commit 36c8d3c8852cb4f9fae08925078425731779888b and verifies downloaded file hashes before use.
+
+Controlled browser tests use actual central and engine code on separate loopback origins with mocked public-set retrieval/speech and fixed rendering time for injected correct-answer steps. They check four common actions, voice routing, target direction, mute, score retention and same-set return. See central platform/INTEGRATION_STATUS.md and the final draft PR workflow evidence for exact tested commits. This does not complete the real deployed staging journey or physical-device acceptance.
