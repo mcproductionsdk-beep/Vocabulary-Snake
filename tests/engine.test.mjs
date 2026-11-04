@@ -8,12 +8,12 @@ const candidate=read('../engine/snake.js');
 function runtime(source,mobile=false){
  const nodes=new Map(), messages=[], frames=new Map(); let serial=0,seed=7;
  function node(id){if(nodes.has(id))return nodes.get(id);const classes=new Set(),listeners={};const n={textContent:'',value:'',style:{},listeners,classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle(x,on){if(on??!classes.has(x))classes.add(x);else classes.delete(x)}},replaceChildren(...xs){this.children=xs},addEventListener(k,fn){listeners[k]=fn},removeEventListener(k){delete listeners[k]},getBoundingClientRect:()=>({width:mobile?370:1080,height:mobile?360:600}),getContext:()=>ctx};nodes.set(id,n);return n}
- const ctx=new Proxy({measureText:t=>({width:String(t).length*9})},{get:(t,k)=>t[k]??(()=>{})});
+ const ctx=new Proxy({__rects:[],fillRect(...r){this.__rects.push(r)},measureText:t=>({width:String(t).length*9})},{get:(t,k)=>t[k]??(()=>{})});
  const math=Object.create(Math);math.random=()=>((seed=(seed*1664525+1013904223)>>>0)/2**32);
  const document={getElementById:node,createElement:()=>node('bold'),querySelector:()=>node('app'),addEventListener(){},removeEventListener(){}};
  const sandbox={document,Math:math,location:{origin:'http://test.invalid'},parent:{postMessage:m=>messages.push(m)},setTimeout:()=>0,clearTimeout(){},requestAnimationFrame:fn=>{frames.set(++serial,fn);return serial},cancelAnimationFrame:id=>frames.delete(id)};
  sandbox.window=sandbox;sandbox.matchMedia=()=>({matches:mobile});sandbox.addEventListener=()=>{};sandbox.removeEventListener=()=>{};sandbox.devicePixelRatio=1;
- const expose='window.__test={state:()=>({snake,dir,nextDir,score,lives,round,done,step,misses,foods,current,queue,running,paused}),move,turn,pause,resize,setFood:(pair)=>{foods=[{x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS,pair:pair===true?current:vocab.find(v=>v.id!==current.id)}];invincible=0},clearFoods:()=>{foods=[]},finishRound:()=>{queue=[]},collide:()=>{snake=[{x:15,y:10},{x:16,y:10},{x:16,y:11},{x:15,y:11}];invincible=0}};';
+ const expose='window.__test={drawAt:(x,y)=>{snake=[{x,y}];ctx.__rects.length=0;drawSnake();return {rects:ctx.__rects,W,H}},state:()=>({snake,dir,nextDir,score,lives,round,done,step,misses,foods,current,queue,running,paused}),move,turn,pause,resize,setFood:(pair)=>{foods=[{x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS,pair:pair===true?current:vocab.find(v=>v.id!==current.id)}];invincible=0},clearFoods:()=>{foods=[]},finishRound:()=>{queue=[]},collide:()=>{snake=[{x:15,y:10},{x:16,y:10},{x:16,y:11},{x:15,y:11}];invincible=0}};';
  vm.runInNewContext(source.replace('})();',expose+'})();'),sandbox);
  const pairs=Array.from({length:6},(_,i)=>['prompt'+i,'target'+i]);
  assert.equal(sandbox.BTSnake.start({pairs,language:'es-ES'}),true);
@@ -69,4 +69,14 @@ test('central shell control ownership is explicit and leaves steering available'
  assert.equal(r.engine.setShellManaged(true),true);assert.equal(r.nodes.get('app').classList.contains('shell-managed'),true);
  assert.equal(typeof r.nodes.get('touchUp').listeners.pointerdown,'function');
  assert.equal(r.engine.setShellManaged('yes'),false);r.engine.setShellManaged(false);assert.equal(r.nodes.get('app').classList.contains('shell-managed'),false);
+});
+
+test('prompt label remains inside every board edge',()=>{
+ for(const mobile of [false,true]){
+  const r=runtime(candidate,mobile);
+  for(const [x,y] of [[0,0],[29,0],[0,19],[29,19]]){
+   const {rects,W,H}=r.api.drawAt(x,y);
+   for(const [left,top,width,height] of rects.slice(-2))assert.ok(left>=0&&top>=0&&left+width<=W&&top+height<=H,JSON.stringify({left,top,width,height,W,H}));
+  }
+ }
 });
