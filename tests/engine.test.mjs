@@ -38,7 +38,7 @@ test('scoring, lives, wrapping, answer direction and acceleration are preserved'
 });
 test('engine extraction contains no service clients, vocabulary catalog or pronunciation provider',()=>{
  assert.doesNotMatch(candidate,/fetch\(|XMLHttpRequest|https:\/\/|speechSynthesis|localStorage/);
- assert.doesNotMatch(read('../snake-game.html'),/<textarea|teacherMenu|studentIntro/);
+ assert.doesNotMatch(read('../snake-game.html'),/<textarea|teacherMenu|studentIntro|MAIN MENU|PLAY AGAIN|class="buttons"|class="logo"/);
  assert.doesNotMatch(read('../engine/snake.css'),/teacherMenu|studentIntro|teacherGrid|shareStudentLink|studentMode/);
 });
 
@@ -46,7 +46,7 @@ test('restart while paused restores overlay, controls and exactly one frame',()=
  const r=runtime(candidate);r.engine.pause();assert.equal(r.frames.size,0);
  assert.equal(r.nodes.get('pauseOverlay').classList.contains('show'),true);
  r.engine.restart();assert.equal(r.nodes.get('pauseOverlay').classList.contains('show'),false);
- assert.equal(r.nodes.get('pause').textContent,'PAUSE');assert.equal(r.frames.size,1);
+ assert.equal(r.frames.size,1);
  for(let i=0;i<30;i++){r.engine.pause();r.engine.pause();assert.equal(r.frames.size,0);r.engine.resume();r.engine.resume();assert.equal(r.frames.size,1);}
 });
 test('initialization waits for start; disposal removes frames and rejects further starts',()=>{
@@ -54,7 +54,7 @@ test('initialization waits for start; disposal removes frames and rejects furthe
  assert.equal(r.engine.initialize(set),true);assert.equal(r.frames.size,0);assert.equal(r.engine.state().status,'paused');
  r.engine.resume();assert.equal(r.frames.size,1);r.engine.dispose();r.engine.dispose();assert.equal(r.frames.size,0);
  assert.equal(r.engine.state().status,'disposed');assert.equal(r.engine.start(set),false);
- assert.equal(r.nodes.get('restart').onclick,null);assert.deepEqual(r.nodes.get('touchUp').listeners,{});
+ assert.deepEqual(r.nodes.get('touchUp').listeners,{});
 });
 test('invalid engine input leaves the current session unchanged',()=>{
  const r=runtime(candidate),before=r.state();
