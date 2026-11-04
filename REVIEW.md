@@ -32,7 +32,7 @@ The existing required migration-safety check must remain failing while the root 
 
 The 2026-11-04 lifecycle increment addresses paused restart, duplicate pending frames, malformed pairs and background pausing with explicit tests. Disposal now clears owned input listeners, timers, sound and compatibility bridge. Resizing/food relocation remains unchanged. The common action UI remains temporary until shell integration.
 
-engine/session.mjs is a candidate versioned session adapter; it is attached only by an explicit trusted bootstrap. No production policy/default is bundled. The browser test injects that bootstrap and uses a different localhost origin, labeled test-only. No real shared-shell application or audible-speech acceptance is claimed.
+engine/session.mjs is a candidate versioned session adapter; it is attached only by an explicit trusted bootstrap. No production policy/default is bundled. The browser test injects that bootstrap and uses a different localhost origin, labeled test-only. The central shell pilot is implemented in Educational-Games draft PR #3 and tested with controlled services. No deployed shared-shell application or audible-speech acceptance is claimed.
 
 ## Remaining acceptance gates
 
