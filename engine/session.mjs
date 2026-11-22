@@ -1,6 +1,6 @@
 const PROTOCOL = 'bt-vocabulary-engine/1';
 const ENGINE_ID = 'vocabulary-snake';
-const LOCALES = ['en-US', 'es-ES', 'de-DE', 'da-DK', 'fr-FR', 'it-IT'];
+const LOCALES = ['en-US', 'es-ES', 'de-DE', 'da-DK', 'fr-FR', 'it-IT', 'nb-NO', 'sv-SE'];
 function origin(value, allowLoopback) {
   try { const url = new URL(value);return url.origin === value && (url.protocol === 'https:' || (allowLoopback === true && url.protocol === 'http:' && ['127.0.0.1','localhost','[::1]'].includes(url.hostname))); }
   catch { return false; }

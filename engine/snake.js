@@ -137,7 +137,7 @@ listen(window,"resize",resize);
 
 /* Core owns categories, vocabulary, voice testing and student sharing. */
 var activePairs=[];
-function validPayload(payload){return !!payload&&Array.isArray(payload.pairs)&&payload.pairs.length>=5&&/^(en-US|es-ES|de-DE|da-DK|fr-FR|it-IT)$/.test(payload.language)&&payload.pairs.every(function(p){return Array.isArray(p)&&p.length===2&&p.every(function(v){return typeof v==="string"&&!!v.trim()})})}
+function validPayload(payload){return !!payload&&Array.isArray(payload.pairs)&&payload.pairs.length>=5&&/^(en-US|es-ES|de-DE|da-DK|fr-FR|it-IT|nb-NO|sv-SE)$/.test(payload.language)&&payload.pairs.every(function(p){return Array.isArray(p)&&p.length===2&&p.every(function(v){return typeof v==="string"&&!!v.trim()})})}
 function launch(payload,defer){if(disposed||!validPayload(payload))return false;activePairs=payload.pairs.map(function(p){return[p[0],p[1]]});emit("BT_SNAKE_CANCEL_SPEECH");return start(activePairs,payload.language,defer)}
 window.BTSnake={
  start:function(payload){return launch(payload,false)},
