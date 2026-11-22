@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in index.html tests/release.test.mjs tests/release-e2e.mjs; do
+          for f in snake-game.html tests/engine.test.mjs tests/session.test.mjs tests/build.test.mjs tests/browser-parity.mjs tests/browser-lifecycle.mjs; do
             if [ ! -s "$f" ]; then
               echo "::error::Required migration file missing: $f. Repository setup is not game acceptance."
               exit 1
@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
           while IFS= read -r -d '' f; do node --check "$f"; done < <(git ls-files -z '*.js' '*.mjs' '*.cjs')
       - name: Run release contract tests
-        run: node --test tests/release.test.mjs
+        run: node --test tests/engine.test.mjs tests/session.test.mjs tests/build.test.mjs
       - name: Install pinned browser client
         run: npm install --no-save --no-package-lock playwright-core@1.56.1
       - name: Run isolated browser regression tests
@@ -58,8 +58,9 @@ jobs:
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
           READY=0
           for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:8765/index.html > /dev/null; then READY=1; break; fi
+            if curl -fsS http://127.0.0.1:8765/snake-game.html > /dev/null; then READY=1; break; fi
             sleep 1
           done
           test "$READY" = 1
-          node tests/release-e2e.mjs
+          node tests/browser-parity.mjs
+          node tests/browser-lifecycle.mjs

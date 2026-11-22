@@ -13,7 +13,7 @@ function runtime(source,mobile=false){
  const document={getElementById:node,createElement:()=>node('bold'),querySelector:()=>node('app'),addEventListener(){},removeEventListener(){}};
  const sandbox={document,Math:math,location:{origin:'http://test.invalid'},parent:{postMessage:m=>messages.push(m)},setTimeout:()=>0,clearTimeout(){},requestAnimationFrame:fn=>{frames.set(++serial,fn);return serial},cancelAnimationFrame:id=>frames.delete(id)};
  sandbox.window=sandbox;sandbox.matchMedia=()=>({matches:mobile});sandbox.addEventListener=()=>{};sandbox.removeEventListener=()=>{};sandbox.devicePixelRatio=1;
- const expose='window.__test={boost:()=>tapBoost,tap:typeof tapTurn==="function"?tapTurn:null,fade:typeof fadeBoost==="function"?fadeBoost:null,grid:()=>({cols:COLS,rows:ROWS,W,H}),drawAt:(x,y)=>{snake=[{x,y}];ctx.__rects.length=0;drawSnake();return {rects:ctx.__rects,W,H}},state:()=>({snake,dir,nextDir,score,lives,round,done,step,misses,foods,current,queue,running,paused}),move,turn,pause,resize,setFood:(pair)=>{foods=[{x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS,pair:pair===true?current:vocab.find(v=>v.id!==current.id)}];invincible=0},clearFoods:()=>{foods=[]},finishRound:()=>{queue=[]},collide:()=>{snake=[{x:15,y:10},{x:16,y:10},{x:16,y:11},{x:15,y:11}];invincible=0}};';
+ const expose='window.__test={tick:loop,boost:()=>tapBoost,tap:typeof tapTurn==="function"?tapTurn:null,fade:typeof fadeBoost==="function"?fadeBoost:null,grid:()=>({cols:COLS,rows:ROWS,W,H}),drawAt:(x,y)=>{snake=[{x,y}];ctx.__rects.length=0;drawSnake();return {rects:ctx.__rects,W,H}},state:()=>({snake,dir,nextDir,score,lives,round,done,step,misses,foods,current,queue,running,paused}),move,turn,pause,resize,setFood:(pair)=>{foods=[{x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS,pair:pair===true?current:vocab.find(v=>v.id!==current.id)}];invincible=0},clearFoods:()=>{foods=[]},finishRound:()=>{queue=[]},collide:()=>{snake=[{x:15,y:10},{x:16,y:10},{x:16,y:11},{x:15,y:11}];invincible=0}};';
  vm.runInNewContext(source.replace('})();',expose+'})();'),sandbox);
  const pairs=Array.from({length:6},(_,i)=>['prompt'+i,'target'+i]);
  assert.equal(sandbox.BTSnake.start({pairs,language:'es-ES'}),true);
@@ -100,4 +100,13 @@ test('separate valid taps build bounded speed, fade and clear on pause/restart',
  r.engine.pause();assert.equal(r.api.boost(),0);assert.equal(r.api.tap(1,0,2200),false);
  r.engine.resume();r.api.tap(1,0,2300);r.api.tap(1,0,2400);r.engine.restart();assert.equal(r.api.boost(),0);
  r.api.tap(-1,0,2500);r.api.tap(-1,0,2600);assert.equal(r.api.boost(),0);
+});
+
+test('boost changes movement rate without changing score or round interval',()=>{
+ const normal=runtime(candidate),boosted=runtime(candidate);
+ normal.api.clearFoods();boosted.api.clearFoods();
+ for(let n=0;n<8;n++)boosted.api.tap(1,0,n*100);
+ for(const time of [1,51,101,151,201,251,301]){normal.api.tick(time);boosted.api.tick(time);}
+ assert.equal(normal.state().snake[0].x,16);assert.equal(boosted.state().snake[0].x,17);
+ assert.equal(boosted.state().score,0);assert.equal(boosted.state().lives,3);assert.equal(boosted.state().step,normal.state().step);
 });
